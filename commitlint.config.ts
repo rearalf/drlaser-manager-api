@@ -2,7 +2,7 @@ import type { UserConfig } from '@commitlint/types';
 
 const Configuration: UserConfig = {
   extends: ['@commitlint/config-conventional'],
-  arserPreset: 'conventional-changelog-atom',
+  parserPreset: 'conventional-changelog-atom',
   formatter: '@commitlint/format',
   rules: {
     'type-enum': [
