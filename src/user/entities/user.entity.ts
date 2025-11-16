@@ -8,8 +8,10 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   PrimaryGeneratedColumn,
+  OneToOne,
 } from 'typeorm';
 
+import { Person } from 'src/person/entities/person.entity';
 import { UserRole } from './user-role.entity';
 
 @Entity('user')
@@ -89,4 +91,13 @@ export class User {
   })
   @OneToMany(() => UserRole, (userRole) => userRole.user)
   userRoles: UserRole[];
+
+  @ApiProperty({
+    description:
+      'The personal record (first name, last name, etc.) linked to this user account. Optional.',
+    type: Person,
+    nullable: true,
+  })
+  @OneToOne(() => Person, (person) => person.user)
+  person?: Person;
 }
