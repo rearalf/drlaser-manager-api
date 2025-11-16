@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
 
 import { EnvConfig, JoiValidationSchema, typeorm } from './config';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { EnvConfig, JoiValidationSchema, typeorm } from './config';
         autoLoadEntities: true,
       }),
     }),
+    UserModule,
   ],
   controllers: [],
   providers: [],
