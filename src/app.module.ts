@@ -2,13 +2,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
 
-import typeorm from './config/typeorm';
+import { EnvConfig, JoiValidationSchema, typeorm } from './config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      load: [typeorm],
+      load: [EnvConfig, typeorm],
       isGlobal: true,
+      validationSchema: JoiValidationSchema,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
