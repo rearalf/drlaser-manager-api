@@ -1,3 +1,15 @@
-#!/bin/sh
-npx lint-staged
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
 
+echo 'Please be patient, this may take a while'
+
+echo 'First, lets check the code style or linting errors 🎨'
+
+npx lint-staged || {
+  echo 'Linting failed, please fix the errors and try again'
+  exit 1
+}
+
+echo "Now we'll run some task for you 🤖"
+
+echo 'All good, you can commit now 🎉'
