@@ -5,6 +5,7 @@ import { Module } from '@nestjs/common';
 import { EnvConfig, JoiValidationSchema, typeorm } from './config';
 import { UserModule } from './user/user.module';
 import { PersonModule } from './person/person.module';
+import { DoctorModule } from './doctor/doctor.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PersonModule } from './person/person.module';
     }),
     UserModule,
     PersonModule,
+    DoctorModule,
   ],
   controllers: [],
   providers: [],
