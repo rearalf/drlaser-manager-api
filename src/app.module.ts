@@ -6,6 +6,7 @@ import { EnvConfig, JoiValidationSchema, typeorm } from './config';
 import { UserModule } from './user/user.module';
 import { PersonModule } from './person/person.module';
 import { DoctorModule } from './doctor/doctor.module';
+import { PatientModule } from './patient/patient.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { DoctorModule } from './doctor/doctor.module';
     UserModule,
     PersonModule,
     DoctorModule,
+    PatientModule,
   ],
   controllers: [],
   providers: [],

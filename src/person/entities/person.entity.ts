@@ -23,6 +23,7 @@ import { PersonContact } from './person-contact.entity';
 import { User } from 'src/user/entities/user.entity';
 import { PersonType } from './person-type.entity';
 import { Doctor } from 'src/doctor/entities/doctor.entity';
+import { Patient } from 'src/patient/entities/patient.entity';
 
 @Entity('person')
 export class Person {
@@ -135,4 +136,12 @@ export class Person {
     nullable: true,
   })
   doctor?: Doctor;
+
+  @OneToOne(() => Patient, (patient) => patient.person)
+  @ApiProperty({
+    description: 'Patient record associated with this person, if applicable.',
+    type: Patient,
+    nullable: true,
+  })
+  patient?: Patient;
 }
