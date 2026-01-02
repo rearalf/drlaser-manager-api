@@ -1,0 +1,14 @@
+export enum PERMISSIONS_ENUM {
+  CREATE = 'CREATE',
+  VIEW = 'VIEW',
+  VIEW_ONE = 'VIEW_ONE',
+  VIEW_ALL = 'VIEW_ALL',
+  UPDATE = 'UPDATE',
+  DELETE = 'DELETE',
+}
+
+export enum TABLES_ENUM {
+  DOCTOR = 'DOCTOR',
+  ROLE = 'ROLE',
+  SPECIALTY = 'SPECIALTY',
+}
