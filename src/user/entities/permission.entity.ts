@@ -12,6 +12,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { RolePermission } from './role-permission.entity';
+import { UserPermission } from './user-permission.entity';
 
 @Entity('permission')
 export class Permission {
@@ -134,4 +135,16 @@ export class Permission {
     isArray: true,
   })
   rolePermissions: RolePermission[];
+
+  @OneToMany(
+    () => UserPermission,
+    (userPermission) => userPermission.permission,
+  )
+  @ApiProperty({
+    description:
+      'List of users associated with this permission through the junction table.',
+    type: [UserPermission],
+    isArray: true,
+  })
+  userPermission: UserPermission[];
 }

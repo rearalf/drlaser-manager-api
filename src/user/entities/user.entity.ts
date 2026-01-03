@@ -13,6 +13,7 @@ import {
 
 import { Person } from 'src/person/entities/person.entity';
 import { UserRole } from './user-role.entity';
+import { UserPermission } from './user-permission.entity';
 
 @Entity('user')
 export class User {
@@ -91,6 +92,15 @@ export class User {
   })
   @OneToMany(() => UserRole, (userRole) => userRole.user)
   userRoles: UserRole[];
+
+  @ApiProperty({
+    description:
+      'List of permissions assigned to the user through the junction table.',
+    type: [UserPermission],
+    isArray: true,
+  })
+  @OneToMany(() => UserPermission, (userPermission) => userPermission.user)
+  userPermission: UserPermission[];
 
   @ApiProperty({
     description:
