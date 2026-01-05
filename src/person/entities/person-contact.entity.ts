@@ -19,11 +19,7 @@ import {
 
 import { Person } from './person.entity';
 
-export enum CONTACT_TYPE_ENUM {
-  EMAIL = 'EMAIL',
-  PHONE = 'PHONE',
-  WHATSAPP = 'WHATSAPP',
-}
+import { CONTACT_TYPE_ENUM } from '@/common/enums/person-contact.enum';
 
 @Entity('person_contact')
 export class PersonContact {

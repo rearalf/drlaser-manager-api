@@ -1,0 +1,6 @@
+export enum CONTACT_TYPE_ENUM {
+  EMAIL = 'EMAIL',
+  PHONE = 'PHONE',
+  WHATSAPP = 'WHATSAPP',
+  TELEGRAM = 'TELEGRAM',
+}
