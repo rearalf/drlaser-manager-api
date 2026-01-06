@@ -21,14 +21,9 @@ import {
   IsPhoneNumber,
 } from 'class-validator';
 
-import { Person } from 'src/person/entities/person.entity';
+import { GENDER_ENUM } from '@/common/enums/person.enum';
 
-export enum GENDER_ENUM {
-  MALE = 'MALE',
-  FEMALE = 'FEMALE',
-  OTHER = 'OTHER',
-  PREFERS_NOT_TO_SAY = 'PREFERS_NOT_TO-SAY',
-}
+import { Person } from 'src/person/entities/person.entity';
 
 @Entity('patient')
 export class Patient {
