@@ -1,12 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 
-import { UserService } from '@/user/services/user.service';
-import { PersonTypeService } from './person-type.service';
 import { PersonContactService } from './person-contact.service';
+import { PersonTypeService } from './person-type.service';
 
 import { PersonContact } from '../entities/person-contact.entity';
-// import { User } from '@/user/entities/user.entity';
 import { Person } from '../entities/person.entity';
 
 import { CreatePersonDto } from '../dto/create-person.dto';
@@ -14,7 +12,6 @@ import { CreatePersonDto } from '../dto/create-person.dto';
 @Injectable()
 export class PersonService {
   constructor(
-    private readonly userService: UserService,
     private readonly personTypeService: PersonTypeService,
     private readonly personContactService: PersonContactService,
   ) {}
@@ -47,9 +44,9 @@ export class PersonService {
       contacts.push(...savedContacts);
     }
 
-    // contacts,
     return {
       ...savedPerson,
+      contacts,
     };
   }
 }
