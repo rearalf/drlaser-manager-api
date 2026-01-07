@@ -1,6 +1,8 @@
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import * as bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
 
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
@@ -17,6 +19,10 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
   app.setGlobalPrefix(`api/${configService.get('API_VERSION') ?? 'v1'}`);
+  app.use(cookieParser());
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true }));
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

@@ -40,6 +40,12 @@ export class CreatePatientDto {
     required: false,
   })
   @IsOptional()
+  @Transform(({ value }: { value: string | undefined }) => {
+    if (value === '' || value === 'null' || value === 'undefined') {
+      return undefined;
+    }
+    return value as string;
+  })
   @IsString({ message: 'El segundo nombre debe ser una cadena de texto.' })
   @Length(1, 100, {
     message: 'El segundo nombre debe tener entre 1 y 100 caracteres.',
@@ -73,7 +79,7 @@ export class CreatePatientDto {
     required: false,
   })
   @IsOptional()
-  profile_picture?: any;
+  profile_picture?: Express.Multer.File;
 
   @ApiProperty({
     description: 'Name of the profile picture file.',

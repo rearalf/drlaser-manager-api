@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -36,14 +36,14 @@ export class RoleService {
           'role.id',
           'role.name',
           'role.description',
-          'role_permission.id',
+          'rolePermissions.id',
           'permission.id',
         ])
         .where('role.id = :id', { id })
         .getOne();
     }
 
-    if (!role) throw new NotFoundException('Rol no encontrado.');
+    if (!role) throw new BadRequestException('Rol no encontrado.');
 
     let permissionsGroup: {
       id: number;

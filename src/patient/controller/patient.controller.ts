@@ -1,24 +1,28 @@
-import {
-  Body,
-  Controller,
-  Post,
-  UploadedFile,
-  UseInterceptors,
-} from '@nestjs/common';
-import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiOperation,
   ApiConsumes,
 } from '@nestjs/swagger';
+import {
+  UseInterceptors,
+  UploadedFiles,
+  Controller,
+  Post,
+  Body,
+} from '@nestjs/common';
+
+import { PatientService } from '../services/patient.service';
 
 import { CreatePatientDto } from '../dto/create-patient.dto';
-// import { Patient } from '../entities/patient.entity';
+
+import { Patient } from '../entities/patient.entity';
 
 @Controller('patient')
 export class PatientController {
-  //   constructor(private readonly patientService: PatientService) {}
+  constructor(private readonly patientService: PatientService) {}
 
   @Post()
   @ApiConsumes('multipart/form-data')
@@ -31,11 +35,22 @@ export class PatientController {
     description: 'The patient has been successfully created.',
   })
   @ApiBadRequestResponse({ description: 'Validation failed or bad request.' })
-  @UseInterceptors(AnyFilesInterceptor())
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: 'profile_picture', maxCount: 1 }], {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
   async create(
-    @Body() _createPatientDto: CreatePatientDto,
-    @UploadedFile() _file?: File,
-  ): Promise<void> {
-    // return await this.patientService.create(createPatientDto);
+    @Body() createPatientDto: CreatePatientDto,
+    @UploadedFiles() files?: { profile_picture?: Express.Multer.File[] },
+  ): Promise<Patient> {
+    if (files?.profile_picture?.[0]) {
+      createPatientDto.profile_picture = files.profile_picture[0];
+
+      createPatientDto.profile_picture_name =
+        files.profile_picture[0].originalname;
+    }
+    return await this.patientService.create(createPatientDto);
   }
 }

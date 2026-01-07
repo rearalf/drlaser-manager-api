@@ -75,7 +75,7 @@ export class CreatePersonDto {
   })
   @IsOptional()
   @IsString()
-  profile_picture?: string;
+  profile_picture?: Express.Multer.File;
 
   @ApiProperty({
     example: 1,
