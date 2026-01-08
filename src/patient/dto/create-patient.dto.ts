@@ -1,24 +1,28 @@
+import { plainToInstance, Transform, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsArray,
-  IsBoolean,
-  IsDateString,
-  IsEmail,
+  Min,
+  IsInt,
   IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsPhoneNumber,
-  IsString,
   Length,
+  IsArray,
+  IsEmail,
   Matches,
+  IsNumber,
+  IsString,
+  IsBoolean,
+  IsDefined,
   MaxLength,
   MinLength,
+  IsNotEmpty,
+  IsOptional,
+  IsDateString,
+  IsPhoneNumber,
   ValidateNested,
 } from 'class-validator';
 
 import { GENDER_ENUM } from '@/common/enums/person.enum';
-import { plainToInstance, Transform, Type } from 'class-transformer';
+
 import { CreatePersonContactDto } from '@/person/dto/create-person-contact.dto';
 
 export class CreatePatientDto {
@@ -68,7 +72,8 @@ export class CreatePatientDto {
     example: 1,
   })
   @Transform(({ value }) => Number(value))
-  @IsNumber({}, { message: 'El tipo de persona debe ser un número válido.' })
+  @IsInt({ message: 'El tipo de persona debe ser un número entero.' })
+  @Min(1, { message: 'El tipo de persona debe ser mayor a 0.' })
   person_type_id: number;
 
   // ====================== ARCHIVO ======================
@@ -99,12 +104,12 @@ export class CreatePatientDto {
   @IsOptional()
   @ValidateNested({ each: true })
   @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
     if (typeof value === 'string') {
       try {
-        if (value === 'null' || value === 'undefined' || !value) return [];
         return plainToInstance(CreatePersonContactDto, JSON.parse(value));
-      } catch (_e) {
-        return [];
+      } catch {
+        return undefined;
       }
     }
     return plainToInstance(CreatePersonContactDto, value);
@@ -160,7 +165,9 @@ export class CreatePatientDto {
   @IsNotEmpty({ message: 'La fecha de nacimiento es obligatoria.' })
   @IsDateString(
     {},
-    { message: 'La fecha de nacimiento debe ser válida (AAAA-MM-DD).' },
+    {
+      message: 'La fecha de nacimiento debe ser válida (AAAA-MM-DD).',
+    },
   )
   birth_date: Date;
 
@@ -212,15 +219,16 @@ export class CreatePatientDto {
   @ApiProperty({
     description: 'Indicates if the complete odontogram chart is attached.',
     example: false,
-    required: false,
-    nullable: true,
+    required: true,
   })
-  @IsOptional()
+  @IsDefined({
+    message: 'La opción de odontograma completo es obligatoria.',
+  })
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean({
     message: 'El campo odontograma completo debe ser verdadero o falso.',
   })
-  complete_odontogram?: boolean;
+  complete_odontogram: boolean;
 
   @ApiProperty({
     description: 'Contact phone number (El Salvador format).',
@@ -229,6 +237,12 @@ export class CreatePatientDto {
     example: '7000-0000',
   })
   @IsOptional()
+  @Transform(({ value }: { value: string | undefined }) => {
+    if (value === '' || value === 'null' || value === 'undefined') {
+      return undefined;
+    }
+    return value as string;
+  })
   @IsPhoneNumber('SV', {
     message: 'El número de teléfono no es válido para El Salvador.',
   })
@@ -242,6 +256,12 @@ export class CreatePatientDto {
     maxLength: 255,
   })
   @IsOptional()
+  @Transform(({ value }: { value: string | undefined }) => {
+    if (value === '' || value === 'null' || value === 'undefined') {
+      return undefined;
+    }
+    return value as string;
+  })
   @IsString({ message: 'La dirección debe ser texto.' })
   @MaxLength(255, {
     message: 'La dirección no puede exceder los 255 caracteres.',
@@ -255,6 +275,12 @@ export class CreatePatientDto {
     maxLength: 100,
   })
   @IsOptional()
+  @Transform(({ value }: { value: string | undefined }) => {
+    if (value === '' || value === 'null' || value === 'undefined') {
+      return undefined;
+    }
+    return value as string;
+  })
   @IsString({ message: 'La ocupación debe ser texto.' })
   @MaxLength(100, {
     message: 'La ocupación no puede exceder los 100 caracteres.',
@@ -349,6 +375,12 @@ export class CreatePatientDto {
     nullable: true,
   })
   @IsOptional()
+  @Transform(({ value }: { value: string | undefined }) => {
+    if (value === '' || value === 'null' || value === 'undefined') {
+      return undefined;
+    }
+    return value as string;
+  })
   @IsString({ message: 'Las notas de evaluación sistémica deben ser texto.' })
   system_evaluation_notes?: string;
 }
