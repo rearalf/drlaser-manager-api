@@ -135,7 +135,8 @@ export class CreatePatientDto {
     message: 'La contraseña debe tener al menos 8 caracteres.',
   })
   @Matches(/(?:(?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
-    message: 'La contraseña debe tener mayúsculas, minúsculas y números.',
+    message:
+      'La contraseña debe contener mayúsculas, minúsculas y al menos un número o símbolo.',
   })
   password?: string;
 
