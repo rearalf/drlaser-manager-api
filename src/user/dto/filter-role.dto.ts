@@ -16,3 +16,16 @@ export class RoleWithPermissionsDto {
     }[];
   }[];
 }
+
+export class PermissionGroupDto {
+  id: number;
+  name: string;
+  label: string;
+  description: string;
+  children: Array<{
+    id: number;
+    name: string;
+    label: string;
+    description: string;
+  }>;
+}

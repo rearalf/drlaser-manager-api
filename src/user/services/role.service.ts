@@ -1,9 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { RoleWithPermissionsDto } from '../dto/filter-role.dto';
+import {
+  PermissionGroupDto,
+  RoleWithPermissionsDto,
+} from '../dto/filter-role.dto';
 
+import { RolePermission } from '../entities/role-permission.entity';
 import { Role } from '../entities/role.entity';
 
 @Injectable()
@@ -17,19 +21,16 @@ export class RoleService {
     id: number,
     withPermission: boolean = false,
   ): Promise<RoleWithPermissionsDto> {
-    let role: Role | null;
+    const query = this.roleRepository.createQueryBuilder('role');
 
     if (withPermission) {
-      role = await this.roleRepository
-        .createQueryBuilder('role')
+      query
         .leftJoinAndSelect('role.rolePermissions', 'rolePermission')
         .leftJoinAndSelect('rolePermission.permission', 'permission')
         .leftJoinAndSelect('permission.parent', 'parentPermission')
-        .where('role.id = :roleId', { roleId: id })
-        .getOne();
+        .where('role.id = :roleId', { roleId: id });
     } else {
-      role = await this.roleRepository
-        .createQueryBuilder('role')
+      query
         .leftJoin('role.rolePermissions', 'rolePermissions')
         .leftJoin('rolePermissions.permission', 'permission')
         .select([
@@ -39,73 +40,19 @@ export class RoleService {
           'rolePermissions.id',
           'permission.id',
         ])
-        .where('role.id = :id', { id })
-        .getOne();
+        .where('role.id = :id', { id });
     }
 
-    if (!role) throw new BadRequestException('Rol no encontrado.');
+    const role = await query.getOne();
 
-    let permissionsGroup: {
-      id: number;
-      name: string;
-      label: string;
-      description: string;
-      children: {
-        id: number;
-        name: string;
-        label: string;
-        description: string;
-      }[];
-    }[] = [];
+    if (!role) throw new NotFoundException('Rol no encontrado.');
 
-    let permissionIds: number[] = [];
+    const permissionIds =
+      role.rolePermissions?.map((rp) => rp.permission?.id) || [];
 
-    if (withPermission) {
-      const grouped: typeof permissionsGroup = [];
-
-      for (const rp of role.rolePermissions ?? []) {
-        const perm = rp.permission;
-        const parent = perm.parent;
-
-        if (parent) {
-          let parentGroup = grouped.find((g) => g.id === parent.id);
-          if (!parentGroup) {
-            parentGroup = {
-              id: parent.id,
-              name: parent.name,
-              label: parent.label,
-              description: parent.description,
-              children: [],
-            };
-            grouped.push(parentGroup);
-          }
-
-          if (!parentGroup.children.some((c) => c.id === perm.id)) {
-            parentGroup.children.push({
-              id: perm.id,
-              name: perm.name,
-              label: perm.label,
-              description: perm.description,
-            });
-          }
-        } else {
-          const existing = grouped.find((g) => g.id === perm.id);
-          if (!existing) {
-            grouped.push({
-              id: perm.id,
-              name: perm.name,
-              label: perm.label,
-              description: perm.description,
-              children: [],
-            });
-          }
-        }
-      }
-
-      permissionsGroup = grouped;
-    }
-
-    permissionIds = role.rolePermissions.map((rp) => rp.permission.id);
+    const permissionsGroup = withPermission
+      ? this.buildPermissionGroups(role.rolePermissions)
+      : [];
 
     return {
       id: role.id,
@@ -114,5 +61,52 @@ export class RoleService {
       permission: permissionIds,
       permissionsGroup,
     };
+  }
+
+  private buildPermissionGroups(
+    rolePermissions: RolePermission[] = [],
+  ): PermissionGroupDto[] {
+    const groupsMap = new Map<number, PermissionGroupDto>();
+
+    for (const rp of rolePermissions) {
+      const perm = rp.permission;
+      if (!perm) continue;
+
+      const parent = perm.parent;
+
+      if (parent) {
+        if (!groupsMap.has(parent.id)) {
+          groupsMap.set(parent.id, {
+            id: parent.id,
+            name: parent.name,
+            label: parent.label,
+            description: parent.description,
+            children: [],
+          });
+        }
+
+        const parentGroup = groupsMap.get(parent.id)!;
+        if (!parentGroup.children.some((c) => c.id === perm.id)) {
+          parentGroup.children.push({
+            id: perm.id,
+            name: perm.name,
+            label: perm.label,
+            description: perm.description,
+          });
+        }
+      } else {
+        if (!groupsMap.has(perm.id)) {
+          groupsMap.set(perm.id, {
+            id: perm.id,
+            name: perm.name,
+            label: perm.label,
+            description: perm.description,
+            children: [],
+          });
+        }
+      }
+    }
+
+    return Array.from(groupsMap.values());
   }
 }

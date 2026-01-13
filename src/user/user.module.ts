@@ -14,7 +14,10 @@ import { UserRoleService } from './services/user-role.service';
 import { UserService } from './services/user.service';
 import { RoleService } from './services/role.service';
 
+import { RoleController } from './controllers/role.controller';
+
 @Module({
+  controllers: [RoleController],
   imports: [
     TypeOrmModule.forFeature([
       User,
