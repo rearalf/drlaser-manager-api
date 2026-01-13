@@ -9,10 +9,10 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
-  ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -20,20 +20,44 @@ import {
   ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiBody,
   ApiTags,
 } from '@nestjs/swagger';
+import type { Response } from 'express';
 
-import { RoleWithPermissionsDto } from '../dto/filter-role.dto';
-
-import { RoleService } from '../services/role.service';
-import { Role } from '../entities/role.entity';
+import { FilterRoleDto, RoleWithPermissionsDto } from '../dto/filter-role.dto';
+import { RoleListItemDto } from '../dto/role-list-item.dto';
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
+
+import { Role } from '../entities/role.entity';
+
+import { RoleService } from '../services/role.service';
+import { PaginationHelper } from '@/common/helpers/pagination-helper';
 
 @ApiTags('Role')
 @Controller('role')
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List all roles with pagination and search' })
+  @ApiOkResponse({
+    description: 'List of roles retrieved successfully.',
+    type: [RoleListItemDto],
+  })
+  async findAll(
+    @Query() filterRoleDto: FilterRoleDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<RoleListItemDto[]> {
+    const { data, total } = await this.roleService.findAll(filterRoleDto);
+
+    if (filterRoleDto.pagination) {
+      PaginationHelper.setHeaders(res, total, filterRoleDto);
+    }
+
+    return data;
+  }
 
   @Get(':id')
   @ApiOperation({

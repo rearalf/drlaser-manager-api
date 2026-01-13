@@ -1,12 +1,16 @@
+import { Brackets, DataSource, EntityManager, Not, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import {
-  ConflictException,
   Injectable,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Not, Repository } from 'typeorm';
 
+import { RoleListItemDto } from '../dto/role-list-item.dto';
+import { CreateRoleDto } from '../dto/create-role.dto';
+import { UpdateRoleDto } from '../dto/update-role.dto';
 import {
+  FilterRoleDto,
   PermissionGroupDto,
   RoleWithPermissionsDto,
 } from '../dto/filter-role.dto';
@@ -14,8 +18,7 @@ import {
 import { RolePermission } from '../entities/role-permission.entity';
 import { Role } from '../entities/role.entity';
 
-import { CreateRoleDto } from '../dto/create-role.dto';
-import { UpdateRoleDto } from '../dto/update-role.dto';
+import { PaginationHelper } from '@/common/helpers/pagination-helper';
 
 import { RolePermissionService } from './role-permission.service';
 import { PermissionService } from './permission.service';
@@ -29,6 +32,49 @@ export class RoleService {
     private readonly rolePermissionService: RolePermissionService,
     private readonly dataSource: DataSource,
   ) {}
+
+  async findAll(
+    filterRoleDto: FilterRoleDto,
+  ): Promise<{ data: RoleListItemDto[]; total: number }> {
+    const { search, pagination, page, per_page } = filterRoleDto;
+
+    const queryBuilder = this.roleRepository
+      .createQueryBuilder('role')
+      .leftJoinAndSelect('role.rolePermissions', 'rolePermission')
+      .leftJoinAndSelect('rolePermission.permission', 'permission')
+      .where('role.name != :excluded', { excluded: 'SuperAdmin' });
+
+    if (search) {
+      const cleanSearch = search.trim();
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.where('unaccent(role.name) ILIKE unaccent(:search)', {
+            search: `%${cleanSearch}%`,
+          });
+        }),
+      );
+    }
+
+    if (pagination) {
+      PaginationHelper.paginate(queryBuilder, page, per_page);
+    }
+
+    const [roles, total] = await queryBuilder.getManyAndCount();
+
+    const data = roles.map((role) => ({
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      permissions:
+        role.rolePermissions?.map((rp) => ({
+          id: rp.permission.id,
+          name: rp.permission.name,
+          label: rp.permission.label,
+        })) || [],
+    }));
+
+    return { data, total };
+  }
 
   async findById(
     id: number,
