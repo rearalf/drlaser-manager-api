@@ -5,19 +5,35 @@ import { RolePermission } from '../entities/role-permission.entity';
 
 @Injectable()
 export class RolePermissionService {
-  async createMulty(
+  async createMany(
     entityManager: EntityManager,
     role_id: number,
     permission_ids: number[],
   ): Promise<RolePermission[]> {
-    const rolePermissions = permission_ids.map((permissionId) => {
-      return entityManager.create(RolePermission, {
-        role_id,
-        permission_id: permissionId,
-      });
-    });
+    if (!permission_ids || permission_ids.length === 0) return [];
 
-    return await entityManager.save(RolePermission, rolePermissions);
+    const uniqueIds = [...new Set(permission_ids)];
+
+    const payload = uniqueIds.map((permission_id) => ({
+      role_id,
+      permission_id,
+    }));
+
+    const result = await entityManager
+      .createQueryBuilder()
+      .insert()
+      .into(RolePermission)
+      .values(payload)
+      .orIgnore()
+      .returning('*')
+      .execute();
+
+    const createdPermissions = entityManager.create(
+      RolePermission,
+      result.generatedMaps,
+    );
+
+    return createdPermissions;
   }
 
   async restoreRolePermission(
@@ -75,7 +91,7 @@ export class RolePermissionService {
     }
 
     if (toInsert.length > 0) {
-      await this.createMulty(entityManager, role_id, toInsert);
+      await this.createMany(entityManager, role_id, toInsert);
     }
   }
 

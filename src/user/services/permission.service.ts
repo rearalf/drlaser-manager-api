@@ -1,6 +1,6 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import { Permission } from '../entities/permission.entity';
 
@@ -52,5 +52,18 @@ export class PermissionService {
     if (!permission) throw new NotFoundException('Permiso no encontrado.');
 
     return permission;
+  }
+
+  async validatePermissionsExist(ids: number[]): Promise<void> {
+    if (!ids || ids.length === 0) return;
+
+    const uniqueIds = [...new Set(ids)];
+
+    const count = await this.permissionRepository.count({
+      where: { id: In(uniqueIds) },
+    });
+
+    if (count !== uniqueIds.length)
+      throw new NotFoundException('Uno o más permisos indicados no existen.');
   }
 }

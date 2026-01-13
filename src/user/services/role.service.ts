@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, EntityManager, Not, Repository } from 'typeorm';
 
 import {
   PermissionGroupDto,
@@ -10,11 +14,20 @@ import {
 import { RolePermission } from '../entities/role-permission.entity';
 import { Role } from '../entities/role.entity';
 
+import { CreateRoleDto } from '../dto/create-role.dto';
+import { UpdateRoleDto } from '../dto/update-role.dto';
+
+import { RolePermissionService } from './role-permission.service';
+import { PermissionService } from './permission.service';
+
 @Injectable()
 export class RoleService {
   constructor(
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
+    private readonly permissionService: PermissionService,
+    private readonly rolePermissionService: RolePermissionService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findById(
@@ -108,5 +121,116 @@ export class RoleService {
     }
 
     return Array.from(groupsMap.values());
+  }
+
+  async create(createRoleDto: CreateRoleDto): Promise<Role> {
+    const { permission_id, name, description } = createRoleDto;
+
+    await this.permissionService.validatePermissionsExist(permission_id);
+
+    const existingRole = await this.roleRepository.findOne({
+      where: { name },
+      withDeleted: true,
+    });
+
+    if (existingRole && !existingRole.deleted_at) {
+      throw new ConflictException(
+        'El rol con este nombre ya existe y está activo.',
+      );
+    }
+
+    return await this.dataSource.transaction(async (manager: EntityManager) => {
+      let roleToReturn: Role;
+
+      if (existingRole) {
+        await manager.restore(Role, existingRole.id);
+
+        const updatedRole: Role = manager.merge(Role, existingRole, {
+          description,
+        });
+        roleToReturn = await manager.save(Role, updatedRole);
+
+        if (permission_id && permission_id.length > 0) {
+          await manager.delete(RolePermission, { role_id: roleToReturn.id });
+
+          await this.rolePermissionService.createMany(
+            manager,
+            roleToReturn.id,
+            permission_id,
+          );
+        }
+      } else {
+        const newRole: Role = manager.create(Role, { name, description });
+        roleToReturn = await manager.save(Role, newRole);
+
+        if (permission_id && permission_id.length > 0) {
+          await this.rolePermissionService.createMany(
+            manager,
+            roleToReturn.id,
+            permission_id,
+          );
+        }
+      }
+
+      return roleToReturn;
+    });
+  }
+
+  async update(id: number, updateRoleDto: UpdateRoleDto): Promise<Role> {
+    const { permission_id, name, description } = updateRoleDto;
+
+    const role = await this.roleRepository.findOne({ where: { id } });
+    if (!role)
+      throw new NotFoundException(`El rol con ID ${id} no encontrado.`);
+
+    if (name && name !== role.name) {
+      const duplicateRole = await this.roleRepository.findOne({
+        where: {
+          name,
+          id: Not(id),
+        },
+        withDeleted: true,
+      });
+
+      if (duplicateRole)
+        throw new ConflictException('Ya existe otro rol con este nombre.');
+
+      if (permission_id && permission_id.length > 0)
+        await this.permissionService.validatePermissionsExist(permission_id);
+    }
+
+    return await this.dataSource.transaction(async (manager: EntityManager) => {
+      const roleToUpdate = manager.merge(Role, role, {
+        name,
+        description,
+      });
+
+      const savedRole = await manager.save(Role, roleToUpdate);
+
+      if (permission_id) {
+        await manager.delete(RolePermission, { role_id: id });
+
+        if (permission_id.length > 0) {
+          await this.rolePermissionService.createMany(
+            manager,
+            id,
+            permission_id,
+          );
+        }
+      }
+
+      return savedRole;
+    });
+  }
+
+  async remove(id: number): Promise<void> {
+    const role = await this.roleRepository.findOne({ where: { id } });
+
+    if (!role)
+      throw new NotFoundException(
+        `El rol con ID ${id} no existe o ya fue eliminado.`,
+      );
+
+    await this.roleRepository.softDelete(id);
   }
 }
