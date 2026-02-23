@@ -6,21 +6,46 @@ import {
   Controller,
   UploadedFiles,
   UseInterceptors,
+  Get,
+  Query,
+  Res,
 } from '@nestjs/common';
 import {
   ApiConsumes,
   ApiOperation,
   ApiCreatedResponse,
   ApiBadRequestResponse,
+  ApiOkResponse,
 } from '@nestjs/swagger';
 
 import { DoctorService } from '../services/doctor.service';
 import { CreateDoctorDto } from '../dto/create-doctor.dto';
 import { Doctor } from '../entities/doctor.entity';
+import { FilterDoctorDto } from '../dto/filter-doctor.dto';
 
 @Controller('doctor')
 export class DoctorController {
   constructor(private readonly doctorService: DoctorService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List all roles with pagination and search' })
+  @ApiOkResponse({
+    description: 'List of roles retrieved successfully.',
+    // type: [RoleListItemDto],
+  })
+  async findAll(
+    @Query() filterDoctorDto: FilterDoctorDto,
+    @Res({ passthrough: true }) _res: Response,
+  ): Promise<void> {
+    // const { data, total } =
+    await this.doctorService.findAll(filterDoctorDto);
+
+    // if (filterRoleDto.pagination) {
+    //   PaginationHelper.setHeaders(res, total, filterRoleDto);
+    // }
+
+    // return data;
+  }
 
   @Post()
   @ApiConsumes('multipart/form-data')

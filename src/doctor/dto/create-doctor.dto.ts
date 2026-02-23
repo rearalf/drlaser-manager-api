@@ -109,6 +109,22 @@ export class CreateDoctorDto {
     example: [1, 2],
     type: [Number],
   })
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) {
+      return value.map((v) => Number(v));
+    }
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        if (Array.isArray(parsed)) {
+          return (parsed as unknown[]).map((v) => Number(v));
+        }
+      } catch {
+        return value.split(',').map((v) => Number(v.trim()));
+      }
+    }
+    return [];
+  })
   @IsArray({ message: 'Los roles deben ser una lista.' })
   @IsInt({ each: true, message: 'Cada ID de rol debe ser un número.' })
   role_ids: number[];
@@ -138,9 +154,23 @@ export class CreateDoctorDto {
     description: 'It is the specialties ids',
   })
   @IsOptional()
-  @Transform(
-    ({ value }: { value: string }) => JSON.parse(value) as Array<number>,
-  )
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) {
+      return value.map((v) => Number(v));
+    }
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        if (Array.isArray(parsed)) {
+          return (parsed as unknown[]).map((v) => Number(v));
+        }
+      } catch {
+        // Si no es JSON, intenta dividir por comas
+        return value.split(',').map((v) => Number(v.trim()));
+      }
+    }
+    return [];
+  })
   @IsArray({ message: 'Las especialidades no son válidas.' })
   @ArrayUnique({
     message: 'Las especialidades secundarias no deben repetirse.',

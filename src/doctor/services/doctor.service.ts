@@ -1,25 +1,68 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
+import { Brackets, DataSource, EntityManager, Repository } from 'typeorm';
 
 import { PersonService } from '@/person/services/person.service';
+import { DoctorSpecialtyService } from './doctor-specialty.service';
 import { UserService } from '@/user/services/user.service';
 import { SpecialtyService } from './specialty.service';
 
 import { CreateDoctorDto } from '../dto/create-doctor.dto';
+import { FilterDoctorDto } from '../dto/filter-doctor.dto';
+import { PersonTypeId } from '@/common/enums/person-type';
 
 import { Doctor } from '../entities/doctor.entity';
-import { DoctorSpecialtyService } from './doctor-specialty.service';
-import { PersonTypeId } from '@/common/enums/person-type';
+import { InjectRepository } from '@nestjs/typeorm';
+import { PaginationHelper } from '@/common/helpers/pagination-helper';
 
 @Injectable()
 export class DoctorService {
   constructor(
+    @InjectRepository(Doctor)
+    private readonly doctorRepository: Repository<Doctor>,
     private readonly dataSource: DataSource,
     private readonly userService: UserService,
     private readonly personService: PersonService,
     private readonly specialtyService: SpecialtyService,
     private readonly doctorSpecialtyService: DoctorSpecialtyService,
   ) {}
+
+  async findAll(filterDoctorDto: FilterDoctorDto): Promise<void> {
+    const { search, pagination, page, per_page } = filterDoctorDto;
+
+    const queryBuilder = this.doctorRepository
+      .createQueryBuilder('doctor')
+      .leftJoinAndSelect('doctor.person', 'person')
+      .leftJoinAndSelect('person.user', 'user')
+      .leftJoinAndSelect('doctor.primarySpecialty', 'Specialty')
+      .leftJoinAndSelect('doctor.doctorSpecialties', 'doctorSpecialties')
+      .leftJoinAndSelect('doctorSpecialties.specialty', 'specialty');
+
+    if (typeof search === 'string' && search.trim()) {
+      const searchNormalized = search.trim();
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.where('unaccent(person.first_name) ILIKE :filtro', {
+            filtro: `%${searchNormalized}%`,
+          })
+            .orWhere('unaccent(person.middle_name) ILIKE :filtro', {
+              filtro: `%${searchNormalized}%`,
+            })
+            .orWhere('unaccent(person.last_name) ILIKE :filtro', {
+              filtro: `%${searchNormalized}%`,
+            })
+            .orWhere('unaccent(user.email) ILIKE :filtro', {
+              filtro: `%${searchNormalized}%`,
+            });
+        }),
+      );
+    }
+
+    if (pagination) PaginationHelper.paginate(queryBuilder, page, per_page);
+
+    const [_doctors, _total] = await queryBuilder.getManyAndCount();
+
+    // console.log({ doctors, total });
+  }
 
   async create(createDoctorDto: CreateDoctorDto): Promise<Doctor> {
     createDoctorDto.person_type_id = PersonTypeId.DOCTOR;
