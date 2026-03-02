@@ -58,7 +58,7 @@ export class CreateDoctorDto {
 
   @ApiProperty({
     description: 'ID of the person type being assigned.',
-    example: 1,
+    example: 4,
   })
   @Transform(({ value }: { value: string }) => parseInt(value, 10))
   @IsInt({ message: 'El tipo de persona debe ser un número entero.' })

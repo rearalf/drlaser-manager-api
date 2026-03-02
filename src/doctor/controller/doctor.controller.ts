@@ -1,27 +1,29 @@
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import type { Response } from 'express';
 import {
+  Res,
+  Get,
   Body,
   Post,
+  Query,
   Controller,
   UploadedFiles,
   UseInterceptors,
-  Get,
-  Query,
-  Res,
 } from '@nestjs/common';
 import {
   ApiConsumes,
   ApiOperation,
+  ApiOkResponse,
   ApiCreatedResponse,
   ApiBadRequestResponse,
-  ApiOkResponse,
 } from '@nestjs/swagger';
 
 import { DoctorService } from '../services/doctor.service';
 import { CreateDoctorDto } from '../dto/create-doctor.dto';
-import { Doctor } from '../entities/doctor.entity';
 import { FilterDoctorDto } from '../dto/filter-doctor.dto';
+import { DoctorListItemResponseDto } from '../dto/find-all-doctor-response.dto';
+import { Doctor } from '../entities/doctor.entity';
 
 @Controller('doctor')
 export class DoctorController {
@@ -31,20 +33,14 @@ export class DoctorController {
   @ApiOperation({ summary: 'List all roles with pagination and search' })
   @ApiOkResponse({
     description: 'List of roles retrieved successfully.',
-    // type: [RoleListItemDto],
+    type: DoctorListItemResponseDto,
+    isArray: true,
   })
   async findAll(
     @Query() filterDoctorDto: FilterDoctorDto,
-    @Res({ passthrough: true }) _res: Response,
-  ): Promise<void> {
-    // const { data, total } =
-    await this.doctorService.findAll(filterDoctorDto);
-
-    // if (filterRoleDto.pagination) {
-    //   PaginationHelper.setHeaders(res, total, filterRoleDto);
-    // }
-
-    // return data;
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<DoctorListItemResponseDto[]> {
+    return await this.doctorService.findAll(filterDoctorDto, res);
   }
 
   @Post()

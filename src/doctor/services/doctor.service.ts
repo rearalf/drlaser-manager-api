@@ -1,18 +1,20 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
 import { Brackets, DataSource, EntityManager, Repository } from 'typeorm';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Response } from 'express';
 
 import { PersonService } from '@/person/services/person.service';
 import { DoctorSpecialtyService } from './doctor-specialty.service';
 import { UserService } from '@/user/services/user.service';
 import { SpecialtyService } from './specialty.service';
 
+import { IDoctorListItemResponse } from '../dto/find-all-doctor-response.interface';
+import { DoctorListItemResponseDto } from '../dto/find-all-doctor-response.dto';
 import { CreateDoctorDto } from '../dto/create-doctor.dto';
 import { FilterDoctorDto } from '../dto/filter-doctor.dto';
-import { PersonTypeId } from '@/common/enums/person-type';
 
+import { PaginationHelper, PersonTypeId } from '@/common';
 import { Doctor } from '../entities/doctor.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { PaginationHelper } from '@/common/helpers/pagination-helper';
 
 @Injectable()
 export class DoctorService {
@@ -26,7 +28,10 @@ export class DoctorService {
     private readonly doctorSpecialtyService: DoctorSpecialtyService,
   ) {}
 
-  async findAll(filterDoctorDto: FilterDoctorDto): Promise<void> {
+  async findAll(
+    filterDoctorDto: FilterDoctorDto,
+    res: Response,
+  ): Promise<DoctorListItemResponseDto[]> {
     const { search, pagination, page, per_page } = filterDoctorDto;
 
     const queryBuilder = this.doctorRepository
@@ -59,9 +64,33 @@ export class DoctorService {
 
     if (pagination) PaginationHelper.paginate(queryBuilder, page, per_page);
 
-    const [_doctors, _total] = await queryBuilder.getManyAndCount();
+    const [doctors, count] = await queryBuilder.getManyAndCount();
 
-    // console.log({ doctors, total });
+    if (filterDoctorDto.pagination) {
+      PaginationHelper.setHeaders(res, count, filterDoctorDto);
+    }
+
+    const data: IDoctorListItemResponse[] = doctors.map((doctor) => ({
+      id: doctor.id,
+      specialty_id: doctor.specialty_id,
+      qualification: doctor.qualification ?? null,
+      primarySpecialty: {
+        id: doctor.primarySpecialty.id,
+        name: doctor.primarySpecialty.name,
+        description: doctor.primarySpecialty.description ?? null,
+      },
+      // person
+      person_id: doctor.person.id,
+      full_name:
+        `${doctor.person.first_name ?? ''} ${doctor.person.middle_name ?? ''} ${doctor.person.last_name ?? ''}`.trim(),
+      profile_picture_url: doctor.person.profile_picture_url ?? null,
+      profile_picture_name: doctor.person.profile_picture_name ?? null,
+      // user
+      email: doctor.person.user ? doctor.person.user.email : null,
+      user_id: doctor.person.user ? doctor.person.user.id : null,
+    }));
+
+    return data;
   }
 
   async create(createDoctorDto: CreateDoctorDto): Promise<Doctor> {
