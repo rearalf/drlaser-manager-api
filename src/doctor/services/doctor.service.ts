@@ -1,5 +1,9 @@
 import { Brackets, DataSource, EntityManager, Repository } from 'typeorm';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Response } from 'express';
 
@@ -8,7 +12,10 @@ import { DoctorSpecialtyService } from './doctor-specialty.service';
 import { UserService } from '@/user/services/user.service';
 import { SpecialtyService } from './specialty.service';
 
-import { IDoctorListItemResponse } from '../dto/find-all-doctor-response.interface';
+import {
+  IDoctorByIdResponse,
+  IDoctorListItemResponse,
+} from '../dto/find-all-doctor-response.interface';
 import { DoctorListItemResponseDto } from '../dto/find-all-doctor-response.dto';
 import { CreateDoctorDto } from '../dto/create-doctor.dto';
 import { FilterDoctorDto } from '../dto/filter-doctor.dto';
@@ -146,5 +153,66 @@ export class DoctorService {
 
       return newDoctor;
     });
+  }
+
+  async getDoctorById(doctor_id: number): Promise<IDoctorByIdResponse> {
+    const doctor = await this.doctorRepository
+      .createQueryBuilder('doctor')
+      .leftJoinAndSelect('doctor.person', 'person')
+      .leftJoinAndSelect('person.user', 'user')
+      .leftJoinAndSelect('user.userRoles', 'userRoles')
+      .leftJoinAndSelect('userRoles.role', 'role')
+      .leftJoinAndSelect('user.userPermission', 'userPermission')
+      .leftJoinAndSelect('userPermission.permission', 'permission')
+      .leftJoinAndSelect('doctor.primarySpecialty', 'primarySpecialty')
+      .leftJoinAndSelect('doctor.doctorSpecialties', 'doctorSpecialties')
+      .leftJoinAndSelect('doctorSpecialties.specialty', 'specialty')
+      .where('doctor.id = :id', { id: doctor_id })
+      .getOne();
+
+    if (!doctor) throw new NotFoundException('Doctor no encontrado.');
+
+    return {
+      id: doctor.id,
+      person_id: doctor.person_id,
+      specialty_id: doctor.specialty_id,
+      qualification: doctor.qualification ?? null,
+      created_at: doctor.created_at,
+      person: {
+        id: doctor.person.id,
+        first_name: doctor.person.first_name,
+        middle_name: doctor.person.middle_name ?? null,
+        last_name: doctor.person.last_name,
+        profile_picture_name: doctor.person.profile_picture_name ?? null,
+        profile_picture_url: doctor.person.profile_picture_url ?? null,
+        user_id: doctor.person.user_id ?? null,
+        person_type_id: doctor.person.person_type_id,
+        created_at: doctor.person.created_at,
+        user: doctor.person.user
+          ? {
+              id: doctor.person.user.id,
+              email: doctor.person.user.email,
+              created_at: doctor.person.user.created_at,
+            }
+          : null,
+      },
+      primarySpecialty: {
+        id: doctor.primarySpecialty.id,
+        name: doctor.primarySpecialty.name,
+        description: doctor.primarySpecialty.description ?? null,
+      },
+      doctorSpecialties:
+        doctor.doctorSpecialties?.map((doctorSpecialty) => ({
+          id: doctorSpecialty.id,
+          doctor_id: doctorSpecialty.doctor_id,
+          specialty_id: doctorSpecialty.specialty_id,
+          created_at: doctorSpecialty.created_at,
+          specialty: {
+            id: doctorSpecialty.specialty.id,
+            name: doctorSpecialty.specialty.name,
+            description: doctorSpecialty.specialty.description ?? null,
+          },
+        })) ?? [],
+    };
   }
 }

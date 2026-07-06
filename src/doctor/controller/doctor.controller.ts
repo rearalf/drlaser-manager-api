@@ -10,6 +10,7 @@ import {
   Controller,
   UploadedFiles,
   UseInterceptors,
+  Param,
 } from '@nestjs/common';
 import {
   ApiConsumes,
@@ -22,6 +23,7 @@ import {
 import { DoctorService } from '../services/doctor.service';
 import { CreateDoctorDto } from '../dto/create-doctor.dto';
 import { FilterDoctorDto } from '../dto/filter-doctor.dto';
+import { IDoctorByIdResponse } from '../dto/find-all-doctor-response.interface';
 import { DoctorListItemResponseDto } from '../dto/find-all-doctor-response.dto';
 import { Doctor } from '../entities/doctor.entity';
 
@@ -41,6 +43,11 @@ export class DoctorController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<DoctorListItemResponseDto[]> {
     return await this.doctorService.findAll(filterDoctorDto, res);
+  }
+
+  @Get(':id')
+  async findDoctorById(@Param('id') id: number): Promise<IDoctorByIdResponse> {
+    return await this.doctorService.getDoctorById(id);
   }
 
   @Post()
